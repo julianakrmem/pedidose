@@ -49,6 +49,10 @@ export interface Regimen {
   maxDailyMg?: number;
   maxDailyMgPerKg?: number;
   durationLabel?: string;
+  /** Condição de uso "se necessário", que entra na prescrição (ex.: "se dor ou febre"). */
+  prn?: string;
+  /** Instrução extra de administração para a prescrição (ex.: diluição). */
+  adminNote?: string;
   /** Apresentações aceitas neste esquema (se omitido, todas). */
   presentationIds?: string[];
   note?: string;
@@ -81,6 +85,9 @@ export type AlertLevel = 'danger' | 'warning' | 'info';
 export type AlertCode =
   | 'invalid-weight'
   | 'invalid-age'
+  | 'neonate'
+  | 'weight-unusual'
+  | 'weight-age-mismatch'
   | 'age-contraindication'
   | 'age-caution'
   | 'age-unknown'
@@ -122,6 +129,8 @@ export interface Administration {
   unit: 'mL' | 'gotas' | 'comprimido' | 'cápsula' | 'jatos';
   /** mL equivalentes (formas líquidas). */
   ml?: number;
+  /** Dispositivo de medida recomendado (seringa, conta-gotas...). */
+  device?: string;
 }
 
 export interface CalcResult {

@@ -23,6 +23,7 @@ export const DRUGS: Drug[] = [
       {
         id: 'padrao',
         label: 'Dor / febre',
+        prn: 'se dor ou febre',
         basis: 'dose',
         mgPerKg: 20,
         mgPerKgRange: [10, 25],
@@ -63,6 +64,7 @@ export const DRUGS: Drug[] = [
       {
         id: 'padrao',
         label: 'Dor / febre',
+        prn: 'se dor ou febre',
         basis: 'dose',
         mgPerKg: 15,
         mgPerKgRange: [10, 15],
@@ -104,6 +106,7 @@ export const DRUGS: Drug[] = [
       {
         id: 'padrao',
         label: 'Dor / febre',
+        prn: 'se dor ou febre',
         basis: 'dose',
         mgPerKg: 10,
         mgPerKgRange: [5, 10],
@@ -303,6 +306,7 @@ export const DRUGS: Drug[] = [
       {
         id: 'asma',
         label: 'Crise asmática / broncoespasmo',
+        adminNote: 'Tomar pela manhã.',
         basis: 'dia',
         mgPerKg: 1,
         mgPerKgRange: [1, 2],
@@ -354,6 +358,7 @@ export const DRUGS: Drug[] = [
       {
         id: 'gastro',
         label: 'Vômitos (gastroenterite)',
+        prn: 'se vômitos',
         basis: 'dose',
         mgPerKg: 0.15,
         mgPerKgRange: [0.1, 0.15],
@@ -386,6 +391,7 @@ export const DRUGS: Drug[] = [
       {
         id: 'spray',
         label: 'Spray com espaçador (crise)',
+        adminNote: 'Usar com espaçador, 1 jato por vez, com 5 a 10 respirações entre os jatos.',
         basis: 'dose',
         mgPerKg: 0.05,
         mgPerKgRange: [0.033, 0.05],
@@ -399,6 +405,7 @@ export const DRUGS: Drug[] = [
       {
         id: 'nebulizacao',
         label: 'Nebulização (crise)',
+        adminNote: 'Diluir em 3 a 4 mL de SF 0,9%.',
         basis: 'dose',
         mgPerKg: 0.15,
         mgPerKgRange: [0.1, 0.15],
@@ -407,7 +414,6 @@ export const DRUGS: Drug[] = [
         minDoseMg: 2.5,
         maxDoseMg: 5,
         presentationIds: ['neb-5'],
-        note: 'Diluir em 3–4 mL de SF 0,9%.',
       },
     ],
     presentations: [

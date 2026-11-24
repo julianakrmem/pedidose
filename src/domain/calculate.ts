@@ -1,9 +1,30 @@
 import { getDrug } from '../data/drugs';
+import { isPlausibleWeight, medianWeightKg } from './growth';
 import type { Administration, Alert, CalcInput, CalcResult, Drug, Presentation, Regimen } from './types';
 
 export const MIN_WEIGHT_KG = 0.5;
 export const MAX_WEIGHT_KG = 150;
 export const MAX_AGE_MONTHS = 216; // 18 anos
+/** Abaixo disso (meses) é período neonatal: posologias diferentes, fora do escopo do app. */
+export const NEONATAL_AGE_MONTHS = 1;
+/** Sem idade informada, pesos fora desta faixa geram pedido de confirmação. */
+export const UNUSUAL_WEIGHT_KG: [low: number, high: number] = [3, 100];
+
+/** Passo de arredondamento do volume conforme a seringa adequada. */
+export function volumeStep(ml: number): number {
+  if (ml < 1) return 0.05; // seringa de 1 mL
+  if (ml <= 3) return 0.1; // seringa de 3 mL
+  if (ml <= 10) return 0.2; // seringas de 5 e 10 mL
+  return 0.5; // seringa de 20 mL ou copo dosador
+}
+
+export function syringeFor(ml: number): string {
+  if (ml <= 1) return 'seringa de 1 mL';
+  if (ml <= 3) return 'seringa de 3 mL';
+  if (ml <= 5) return 'seringa de 5 mL';
+  if (ml <= 10) return 'seringa de 10 mL';
+  return 'seringa de 20 mL ou copo dosador';
+}
 
 /** Diferença relativa a partir da qual o arredondamento gera alerta. */
 const ROUNDING_TOLERANCE = 0.1;
@@ -45,19 +66,24 @@ export function toAdministration(
     if (drops * mgPerDrop > ceilingMg + 1e-9) drops = Math.floor(ceilingMg / mgPerDrop + 1e-9);
     if (drops < 1) return { administration: null, deliveredMg: 0 };
     return {
-      administration: { amount: drops, unit: 'gotas', ml: clean(drops / presentation.dropsPerMl!) },
+      administration: {
+        amount: drops,
+        unit: 'gotas',
+        ml: clean(drops / presentation.dropsPerMl!),
+        device: form === 'nebulizacao' ? 'conta-gotas do frasco, no copinho do nebulizador' : 'conta-gotas do próprio frasco',
+      },
       deliveredMg: clean(drops * mgPerDrop),
     };
   }
 
   if (form === 'solucao' || form === 'injetavel') {
     const conc = presentation.mgPerMl!;
-    const step = doseMg / conc < 1 ? 0.05 : 0.1;
+    const step = volumeStep(doseMg / conc);
     let ml = Math.max(step, round(doseMg / conc, step));
     if (ml * conc > ceilingMg + 1e-9) ml = floorTo(ceilingMg / conc, step);
     ml = clean(ml);
     if (ml <= 0) return { administration: null, deliveredMg: 0 };
-    return { administration: { amount: ml, unit: 'mL', ml }, deliveredMg: clean(ml * conc) };
+    return { administration: { amount: ml, unit: 'mL', ml, device: syringeFor(ml) }, deliveredMg: clean(ml * conc) };
   }
 
   // Formas unitárias: comprimido, cápsula, jato.
@@ -68,7 +94,13 @@ export function toAdministration(
   units = clean(units);
   if (units <= 0) return { administration: null, deliveredMg: 0 };
   const unit = form === 'spray' ? 'jatos' : form === 'capsula' ? 'cápsula' : 'comprimido';
-  return { administration: { amount: units, unit }, deliveredMg: clean(units * perUnit) };
+  const device =
+    form === 'spray'
+      ? 'espaçador com máscara ou bocal'
+      : !Number.isInteger(units)
+        ? 'partir o comprimido no sulco'
+        : undefined;
+  return { administration: { amount: units, unit, device }, deliveredMg: clean(units * perUnit) };
 }
 
 export function calculate(input: CalcInput): CalcResult {
@@ -115,7 +147,10 @@ export function calculate(input: CalcInput): CalcResult {
         {
           level: 'danger',
           code: 'invalid-weight',
-          message: `Informe um peso entre ${MIN_WEIGHT_KG} e ${MAX_WEIGHT_KG} kg.`,
+          message:
+            Number.isFinite(weightKg) && weightKg > MAX_WEIGHT_KG
+              ? `Peso fora da faixa pediátrica (máx. ${MAX_WEIGHT_KG} kg). Erro de digitação? Ex.: ${fmt(weightKg)} em vez de ${fmt(weightKg / 10)} kg.`
+              : `Informe um peso entre ${fmt(MIN_WEIGHT_KG)} e ${MAX_WEIGHT_KG} kg.`,
         },
       ],
     };
@@ -124,6 +159,43 @@ export function calculate(input: CalcInput): CalcResult {
   if (ageMonths !== undefined && (!Number.isFinite(ageMonths) || ageMonths < 0 || ageMonths > MAX_AGE_MONTHS)) {
     alerts.push({ level: 'danger', code: 'invalid-age', message: 'Idade inválida (0 a 18 anos).' });
     blocked = true;
+  }
+
+  // ── 1b. Plausibilidade do peso (erro de digitação) e período neonatal ─
+  if (ageMonths !== undefined && !blocked) {
+    if (ageMonths < NEONATAL_AGE_MONTHS) {
+      alerts.push({
+        level: 'danger',
+        code: 'neonate',
+        message: 'Período neonatal (< 28 dias): doses e intervalos são diferentes. Esta ferramenta não cobre neonatos.',
+      });
+      blocked = true;
+    }
+    if (!isPlausibleWeight(weightKg, ageMonths)) {
+      const expected = medianWeightKg(ageMonths);
+      const slip = [weightKg / 10, weightKg * 10].find((w) => isPlausibleWeight(w, ageMonths));
+      alerts.push({
+        level: 'warning',
+        code: 'weight-age-mismatch',
+        message:
+          `Peso incomum para a idade (mediana ≈ ${fmt(expected, 1)} kg). Confirme o valor digitado` +
+          (slip !== undefined ? ` — você quis dizer ${fmt(slip, 1)} kg?` : '.'),
+      });
+    }
+  } else if (ageMonths === undefined) {
+    if (weightKg > UNUSUAL_WEIGHT_KG[1]) {
+      alerts.push({
+        level: 'warning',
+        code: 'weight-unusual',
+        message: `Peso acima de ${UNUSUAL_WEIGHT_KG[1]} kg: confirme se não é erro de digitação (ex.: ${fmt(weightKg)} em vez de ${fmt(weightKg / 10, 1)} kg).`,
+      });
+    } else if (weightKg < UNUSUAL_WEIGHT_KG[0]) {
+      alerts.push({
+        level: 'warning',
+        code: 'weight-unusual',
+        message: 'Peso compatível com neonato ou prematuro: informe a idade. A ferramenta não cobre o período neonatal.',
+      });
+    }
   }
 
   // ── 2. Travas por idade e peso ──────────────────────────────────────────

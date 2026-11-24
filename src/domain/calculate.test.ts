@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DRUGS } from '../data/drugs';
-import { allowedPresentations, calculate } from './calculate';
+import { allowedPresentations, calculate, syringeFor } from './calculate';
 import type { AlertCode, CalcResult } from './types';
 
 const codes = (r: CalcResult): AlertCode[] => r.alerts.map((a) => a.code);
@@ -194,6 +194,74 @@ describe('formas unitárias e doses mínimas', () => {
     expect(calculate({ drugId: 'salbutamol', weightKg: 6 }).administration?.amount).toBe(3);
     const big = calculate({ drugId: 'salbutamol', weightKg: 30 });
     expect(big.administration).toMatchObject({ amount: 10, unit: 'jatos' });
+  });
+});
+
+describe('travas de peso e idade', () => {
+  it('180 kg é bloqueado e sugere 18 kg', () => {
+    const r = calculate({ drugId: 'paracetamol', weightKg: 180 });
+    expect(r.blocked).toBe(true);
+    expect(r.alerts[0].message).toContain('18 kg');
+  });
+
+  it('peso acima de 100 kg sem idade pede confirmação', () => {
+    const r = calculate({ drugId: 'paracetamol', weightKg: 120 });
+    expect(r.blocked).toBe(false);
+    expect(codes(r)).toContain('weight-unusual');
+  });
+
+  it('peso incompatível com a idade sugere o erro de vírgula', () => {
+    const r = calculate({ drugId: 'paracetamol', weightKg: 140, ageMonths: 48 });
+    expect(codes(r)).toContain('weight-age-mismatch');
+    expect(r.alerts.find((a) => a.code === 'weight-age-mismatch')!.message).toContain('14 kg');
+  });
+
+  it('peso plausível para a idade não gera alerta', () => {
+    const r = calculate({ drugId: 'paracetamol', weightKg: 16, ageMonths: 48 });
+    expect(codes(r)).not.toContain('weight-age-mismatch');
+  });
+
+  it('bloqueia neonato (< 28 dias)', () => {
+    const r = calculate({ drugId: 'paracetamol', weightKg: 3.4, ageMonths: 0.5 });
+    expect(r.blocked).toBe(true);
+    expect(codes(r)).toContain('neonate');
+  });
+
+  it('peso < 3 kg sem idade alerta para possível neonato', () => {
+    const r = calculate({ drugId: 'paracetamol', weightKg: 2.5 });
+    expect(codes(r)).toContain('weight-unusual');
+  });
+});
+
+describe('seringa e arredondamento prático', () => {
+  it.each([
+    [0.4, 'seringa de 1 mL'],
+    [2.3, 'seringa de 3 mL'],
+    [4.0, 'seringa de 5 mL'],
+    [6.8, 'seringa de 10 mL'],
+    [12.5, 'seringa de 20 mL ou copo dosador'],
+  ])('%s mL → %s', (ml, device) => {
+    expect(syringeFor(ml)).toBe(device);
+  });
+
+  it('volume menor que 1 mL usa passo de 0,05 mL', () => {
+    const r = calculate({ drugId: 'ondansetrona', weightKg: 9, ageMonths: 10, presentationId: 'inj-2' });
+    expect(r.administration?.amount).toBe(0.7); // 1,35 mg / 2 mg/mL = 0,675 → 0,70
+    expect(r.administration?.device).toBe('seringa de 1 mL');
+  });
+
+  it('volume entre 3 e 10 mL arredonda para 0,2 mL', () => {
+    const r = calculate({ drugId: 'amoxicilina', weightKg: 13, ageMonths: 30, presentationId: 'susp-50' });
+    // 50 mg/kg/dia ÷ 3 = 216,7 mg → 4,33 mL → 4,4 mL
+    expect(r.administration?.amount).toBe(4.4);
+    expect(r.administration?.device).toBe('seringa de 5 mL');
+  });
+
+  it('gotas são sempre número inteiro', () => {
+    for (const w of [5.3, 7.7, 11.1, 19.9]) {
+      const r = calculate({ drugId: 'dipirona', weightKg: w, ageMonths: 24 });
+      expect(Number.isInteger(r.administration!.amount)).toBe(true);
+    }
   });
 });
 

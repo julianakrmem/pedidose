@@ -1,12 +1,14 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { DRUGS } from './data/drugs';
 import { allowedPresentations, calculate, fmt } from './domain/calculate';
-import { prescriptionText } from './domain/prescription';
+import { buildPrescription, formatAmount } from './domain/prescription';
+import { THEME_LABEL, useTheme, type ThemeChoice } from './theme';
 import type { Alert, CalcResult } from './domain/types';
 
 const parseNumber = (raw: string) => (raw.trim() === '' ? undefined : Number(raw.replace(',', '.')));
 
 export default function App() {
+  const { choice: theme, cycle: cycleTheme } = useTheme();
   const [weightRaw, setWeightRaw] = useState('');
   const [ageRaw, setAgeRaw] = useState('');
   const [ageUnit, setAgeUnit] = useState<'meses' | 'anos'>('anos');
@@ -51,18 +53,32 @@ export default function App() {
 
   return (
     <div className="min-h-dvh bg-paper text-ink">
-      <header className="border-b border-line bg-paper/90 backdrop-blur sticky top-0 z-10">
+      <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           <Logo />
           <div className="leading-tight">
             <h1 className="font-semibold tracking-tight">PediDose</h1>
             <p className="text-xs text-muted">Cálculo de doses pediátricas por peso</p>
           </div>
-          <span className="ml-auto shrink-0 whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800">
+          <span className="ml-auto hidden shrink-0 whitespace-nowrap rounded-full border border-warn-line bg-warn-bg px-2.5 py-1 text-[11px] font-medium text-warn sm:inline">
             Uso educacional
           </span>
+          <button
+            type="button"
+            onClick={cycleTheme}
+            className="ml-auto flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs font-medium sm:ml-0"
+            aria-label={`Tema: ${THEME_LABEL[theme]}. Toque para trocar.`}
+            title="Trocar tema"
+          >
+            <ThemeIcon choice={theme} />
+            <span>{THEME_LABEL[theme]}</span>
+          </button>
         </div>
       </header>
+
+      <p className="border-b border-warn-line bg-warn-bg px-4 py-1.5 text-center text-[11px] font-medium text-warn sm:hidden">
+        Uso educacional · confira sempre a bula e o protocolo local
+      </p>
 
       <main className="mx-auto grid max-w-5xl gap-6 px-4 py-6 md:grid-cols-[1fr_minmax(0,26rem)]">
         <div className="space-y-6">
@@ -102,7 +118,7 @@ export default function App() {
                         key={u}
                         type="button"
                         onClick={() => setAgeUnit(u)}
-                        className={`rounded-md px-2 py-1 ${ageUnit === u ? 'bg-ink text-white' : 'text-muted'}`}
+                        className={`rounded-md px-2 py-1 ${ageUnit === u ? 'bg-ink text-paper' : 'text-muted'}`}
                       >
                         {u}
                       </button>
@@ -122,12 +138,12 @@ export default function App() {
                   onClick={() => selectDrug(d.id)}
                   className={`rounded-xl border px-3 py-2.5 text-left transition ${
                     d.id === drugId
-                      ? 'border-teal bg-teal text-white shadow-sm'
-                      : 'border-line bg-white hover:border-teal/50'
+                      ? 'border-teal bg-teal text-on-accent shadow-sm'
+                      : 'border-line bg-surface hover:border-teal/50'
                   }`}
                 >
                   <span className="block text-sm font-medium leading-snug">{d.name}</span>
-                  <span className={`block text-[11px] ${d.id === drugId ? 'text-white/75' : 'text-muted'}`}>
+                  <span className={`block text-[11px] ${d.id === drugId ? 'text-on-accent/75' : 'text-muted'}`}>
                     {d.group}
                   </span>
                 </button>
@@ -144,7 +160,7 @@ export default function App() {
                     type="button"
                     onClick={() => selectRegimen(r.id)}
                     className={`rounded-full border px-3 py-1.5 text-sm ${
-                      r.id === regimen.id ? 'border-ink bg-ink text-white' : 'border-line bg-white'
+                      r.id === regimen.id ? 'border-ink bg-ink text-paper' : 'border-line bg-surface'
                     }`}
                   >
                     {r.label}
@@ -159,7 +175,7 @@ export default function App() {
                 <label
                   key={p.id}
                   className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 ${
-                    p.id === presentationId ? 'border-teal bg-teal-50' : 'border-line bg-white'
+                    p.id === presentationId ? 'border-teal bg-teal-50' : 'border-line bg-surface'
                   }`}
                 >
                   <input
@@ -218,9 +234,9 @@ export default function App() {
 
 function Section({ step, title, children }: { step: number; title: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-line bg-white/60 p-4 sm:p-5">
+    <section className="rounded-2xl border border-line bg-surface/60 p-4 sm:p-5">
       <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-        <span className="grid size-5 place-items-center rounded-full bg-ink text-[11px] text-white">{step}</span>
+        <span className="grid size-5 place-items-center rounded-full bg-ink text-[11px] text-paper">{step}</span>
         {title}
       </h2>
       {children}
@@ -229,8 +245,6 @@ function Section({ step, title, children }: { step: number; title: string; child
 }
 
 function ResultCard({ result, unitLabel }: { result: CalcResult | null; unitLabel: string }) {
-  const [copied, setCopied] = useState(false);
-
   if (!result) {
     return (
       <div className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">
@@ -239,22 +253,11 @@ function ResultCard({ result, unitLabel }: { result: CalcResult | null; unitLabe
     );
   }
 
-  const rx = prescriptionText(result);
+  const rx = buildPrescription(result);
   const { administration: adm } = result;
 
-  async function copy() {
-    if (!rx) return;
-    try {
-      await navigator.clipboard.writeText(rx);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard indisponível */
-    }
-  }
-
   return (
-    <div className="overflow-hidden rounded-2xl border border-ink/80 bg-white shadow-[0_1px_0_#1c2421,0_12px_32px_-16px_rgba(28,36,33,.35)]">
+    <div className="overflow-hidden rounded-2xl border border-ink/80 bg-surface shadow-[0_12px_32px_-16px_rgba(0,0,0,.45)]">
       <div className="flex items-center justify-between border-b border-dashed border-line px-5 py-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-muted">Resultado</span>
         <span className="text-xs text-muted">{result.drug.name}</span>
@@ -267,37 +270,23 @@ function ResultCard({ result, unitLabel }: { result: CalcResult | null; unitLabe
         </div>
       ) : (
         <div className="px-5 pt-5 pb-4">
-          <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-bold tracking-tight tabular-nums">{fmt(adm.amount)}</span>
-            <span className="text-xl font-medium">{adm.unit}</span>
-          </div>
+          <p className="text-5xl font-bold tracking-tight tabular-nums">{formatAmount(adm)}</p>
           <p className="mt-1 text-base font-medium text-teal">{result.scheduleText}</p>
-          {adm.unit === 'gotas' && adm.ml !== undefined && (
-            <p className="text-xs text-muted">≈ {fmt(adm.ml)} mL</p>
+          {adm.device && (
+            <p className="mt-1 text-xs text-muted">
+              Medir com: <span className="font-medium text-ink">{adm.device}</span>
+              {adm.unit === 'gotas' && adm.ml !== undefined && <> · ≈ {fmt(adm.ml)} mL</>}
+            </p>
           )}
 
           <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4 text-sm">
             <Stat label="Dose por tomada" value={`${fmt(result.deliveredDoseMg)} mg`} />
-            <Stat
-              label="Total diário"
-              value={result.dailyDoseMg !== null ? `${fmt(result.dailyDoseMg)} mg` : '—'}
-            />
+            <Stat label="Total diário" value={result.dailyDoseMg !== null ? `${fmt(result.dailyDoseMg)} mg` : '—'} />
             <Stat label="Base de cálculo" value={`${fmt(result.mgPerKgUsed, 3)} ${unitLabel}`} />
             <Stat label="Duração" value={result.regimen.durationLabel ?? '—'} />
           </dl>
 
-          {rx && (
-            <button
-              type="button"
-              onClick={copy}
-              className="mt-4 w-full rounded-xl bg-paper px-3 py-2.5 text-left text-[13px] leading-snug hover:bg-line/50"
-            >
-              <span className="mb-0.5 block text-[11px] font-semibold uppercase tracking-wider text-muted">
-                {copied ? 'Copiado ✓' : 'Rascunho de prescrição · toque para copiar'}
-              </span>
-              {rx}
-            </button>
-          )}
+          {rx && <PrescriptionBox text={rx.text} header={rx.header} item={rx.item} instruction={rx.instruction} notes={rx.notes} />}
         </div>
       )}
 
@@ -321,6 +310,62 @@ function ResultCard({ result, unitLabel }: { result: CalcResult | null; unitLabe
   );
 }
 
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Reserva para navegadores ou molduras que bloqueiam a API de área de transferência.
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
+function PrescriptionBox(props: { text: string; header: string; item: string; instruction: string; notes: string[] }) {
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+
+  async function onCopy() {
+    setState((await copyText(props.text)) ? 'copied' : 'failed');
+    setTimeout(() => setState('idle'), 2000);
+  }
+
+  return (
+    <div className="mt-4 rounded-xl border border-line bg-paper">
+      <div className="px-4 pt-3 pb-3 text-[13px] leading-snug">
+        <p className="text-[11px] font-bold tracking-wider text-muted">{props.header}</p>
+        <p className="mt-1 font-semibold">{props.item}</p>
+        <p className="mt-0.5">{props.instruction}</p>
+        {props.notes.map((n) => (
+          <p key={n} className="mt-0.5 text-muted">
+            {n}
+          </p>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={onCopy}
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-b-xl bg-teal text-sm font-semibold text-on-accent transition active:scale-[.99]"
+        aria-live="polite"
+      >
+        <CopyIcon />
+        {state === 'copied' ? 'Prescrição copiada ✓' : state === 'failed' ? 'Não foi possível copiar — selecione o texto' : 'Copiar prescrição'}
+      </button>
+    </div>
+  );
+}
+
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -331,16 +376,16 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 const ALERT_STYLE: Record<Alert['level'], string> = {
-  danger: 'border-red-200 bg-red-50 text-red-800',
-  warning: 'border-amber-200 bg-amber-50 text-amber-900',
-  info: 'border-slate-200 bg-slate-50 text-slate-700',
+  danger: 'border-danger-line bg-danger-bg text-danger',
+  warning: 'border-warn-line bg-warn-bg text-warn',
+  info: 'border-info-line bg-info-bg text-info',
 };
-const ALERT_ICON: Record<Alert['level'], string> = { danger: '⛔', warning: '⚠️', info: 'ℹ️' };
+const ALERT_ICON: Record<Alert['level'], string> = { danger: '⛔', warning: '⚠', info: 'ⓘ' };
 
 function AlertItem({ alert }: { alert: Alert }) {
   return (
     <li className={`flex gap-2 rounded-lg border px-3 py-2 text-[13px] leading-snug ${ALERT_STYLE[alert.level]}`}>
-      <span aria-hidden>{ALERT_ICON[alert.level]}</span>
+      <span aria-hidden className="font-bold">{ALERT_ICON[alert.level]}</span>
       <span>{alert.message}</span>
     </li>
   );
@@ -349,9 +394,48 @@ function AlertItem({ alert }: { alert: Alert }) {
 function Logo() {
   return (
     <svg viewBox="0 0 32 32" className="size-8" aria-hidden>
-      <rect width="32" height="32" rx="9" fill="#0f5e57" />
-      <path d="M16 6c4 5.2 6.5 8.6 6.5 12a6.5 6.5 0 0 1-13 0C9.5 14.6 12 11.2 16 6Z" fill="#fff" />
-      <path d="M16 15v7M12.5 18.5h7" stroke="#0f5e57" strokeWidth="2" strokeLinecap="round" />
+      <rect width="32" height="32" rx="9" className="fill-teal" />
+      <path d="M16 6c4 5.2 6.5 8.6 6.5 12a6.5 6.5 0 0 1-13 0C9.5 14.6 12 11.2 16 6Z" className="fill-on-accent" />
+      <path d="M16 15v7M12.5 18.5h7" className="stroke-teal" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ThemeIcon({ choice }: { choice: ThemeChoice }) {
+  const common = { viewBox: '0 0 20 20', className: 'size-4', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, 'aria-hidden': true } as const;
+  if (choice === 'light')
+    return (
+      <svg {...common}>
+        <circle cx="10" cy="10" r="3.5" />
+        <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.3 4.3l1.4 1.4M14.3 14.3l1.4 1.4M4.3 15.7l1.4-1.4M14.3 5.7l1.4-1.4" strokeLinecap="round" />
+      </svg>
+    );
+  if (choice === 'dark')
+    return (
+      <svg {...common}>
+        <path d="M16 12.5A6.5 6.5 0 0 1 7.5 4a6.5 6.5 0 1 0 8.5 8.5Z" strokeLinejoin="round" />
+      </svg>
+    );
+  if (choice === 'contrast')
+    return (
+      <svg {...common}>
+        <circle cx="10" cy="10" r="7" />
+        <path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor" />
+      </svg>
+    );
+  return (
+    <svg {...common}>
+      <rect x="2.5" y="4" width="15" height="10" rx="1.5" />
+      <path d="M7 17h6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <rect x="6.5" y="6.5" width="10" height="10" rx="2" />
+      <path d="M13.5 6.5V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v7A1.5 1.5 0 0 0 5 13.5h1.5" />
     </svg>
   );
 }

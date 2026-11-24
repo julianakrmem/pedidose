@@ -1,14 +1,77 @@
 @import "tailwindcss";
 
+/* Tema claro (padrão). Escuro e alto contraste só redefinem estas variáveis. */
 @theme {
   --color-paper: #f6f4ef;
+  --color-surface: #ffffff;
   --color-ink: #1c2421;
   --color-muted: #6b7470;
   --color-line: #dcd8cf;
   --color-teal: #0f5e57;
   --color-teal-50: #eaf3f1;
+  --color-on-accent: #ffffff;
   --color-danger: #b42318;
+  --color-danger-bg: #fef3f2;
+  --color-danger-line: #fecdca;
+  --color-warn: #93370d;
+  --color-warn-bg: #fffaeb;
+  --color-warn-line: #fedf89;
+  --color-info: #344054;
+  --color-info-bg: #f8f9fb;
+  --color-info-line: #e4e7ec;
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+/* Escuro: para plantão noturno e ambientes com pouca luz. */
+:root[data-mode="dark"] {
+  color-scheme: dark;
+  --color-paper: #101614;
+  --color-surface: #18201d;
+  --color-ink: #e6ebe8;
+  --color-muted: #9aa6a1;
+  --color-line: #2c3833;
+  --color-teal: #5cc2b1;
+  --color-teal-50: #16302b;
+  --color-on-accent: #07120f;
+  --color-danger: #fda29b;
+  --color-danger-bg: #2a1513;
+  --color-danger-line: #6b2620;
+  --color-warn: #fec84b;
+  --color-warn-bg: #261d0b;
+  --color-warn-line: #5c4310;
+  --color-info: #c4ccd8;
+  --color-info-bg: #1b2230;
+  --color-info-line: #2f3a4d;
+}
+
+/* Alto contraste: preto puro, texto branco, destaque amarelo (WCAG AAA). */
+:root[data-mode="contrast"] {
+  color-scheme: dark;
+  --color-paper: #000000;
+  --color-surface: #000000;
+  --color-ink: #ffffff;
+  --color-muted: #e6e6e6;
+  --color-line: #ffffff;
+  --color-teal: #ffd60a;
+  --color-teal-50: #262000;
+  --color-on-accent: #000000;
+  --color-danger: #ff8a80;
+  --color-danger-bg: #000000;
+  --color-danger-line: #ff8a80;
+  --color-warn: #ffd60a;
+  --color-warn-bg: #000000;
+  --color-warn-line: #ffd60a;
+  --color-info: #ffffff;
+  --color-info-bg: #000000;
+  --color-info-line: #ffffff;
+}
+:root[data-mode="contrast"] :focus-visible {
+  outline: 3px solid #ffd60a;
+  outline-offset: 2px;
 }
 
 @layer components {
@@ -16,6 +79,6 @@
     @apply mb-1.5 block text-xs font-semibold text-ink/80;
   }
   .field {
-    @apply flex items-center gap-2 rounded-xl border border-line bg-white px-3 py-2 focus-within:border-teal focus-within:ring-2 focus-within:ring-teal/15;
+    @apply flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 focus-within:border-teal focus-within:ring-2 focus-within:ring-teal/20;
   }
 }
