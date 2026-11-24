@@ -1,0 +1,422 @@
+import type { Drug } from '../domain/types';
+
+/**
+ * Base de fármacos do MVP.
+ *
+ * ⚠️ Os parâmetros abaixo foram compilados de referências pediátricas usuais
+ * para fins EDUCACIONAIS. Antes de qualquer uso, revise cada valor contra a
+ * bula vigente (ANVISA) e o protocolo da sua instituição. Concentrações e
+ * gotas/mL variam entre fabricantes.
+ *
+ * Para alterar uma dose, edite só este arquivo — a camada de cálculo e a
+ * interface não precisam mudar. Os testes em src/domain/*.test.ts quebram se
+ * uma mudança gerar um resultado inesperado nos cenários de referência.
+ */
+export const DRUGS: Drug[] = [
+  {
+    id: 'dipirona',
+    name: 'Dipirona (metamizol)',
+    group: 'Analgésico / antitérmico',
+    minAgeMonths: 3,
+    minWeightKg: 5,
+    regimens: [
+      {
+        id: 'padrao',
+        label: 'Dor / febre',
+        basis: 'dose',
+        mgPerKg: 20,
+        mgPerKgRange: [10, 25],
+        intervalHours: 6,
+        maxDoseMg: 1000,
+        maxDailyMg: 4000,
+      },
+    ],
+    presentations: [
+      { id: 'gotas-500', label: 'Gotas 500 mg/mL', form: 'gotas', mgPerMl: 500, dropsPerMl: 20 },
+      { id: 'sol-50', label: 'Solução oral 50 mg/mL', form: 'solucao', mgPerMl: 50, maxPracticalVolumeMl: 20 },
+      {
+        id: 'comp-500',
+        label: 'Comprimido 500 mg',
+        form: 'comprimido',
+        mgPerUnit: 500,
+        divisibleBy: 1,
+        minAgeMonths: 180,
+        note: 'Comprimidos: bula indica acima de 15 anos.',
+      },
+    ],
+    ageRules: [
+      {
+        belowMonths: 3,
+        level: 'danger',
+        blocks: true,
+        message: 'Bula: não usar em menores de 3 meses ou com menos de 5 kg.',
+      },
+    ],
+    warnings: ['Risco raro de agranulocitose e hipotensão; questione alergia a pirazolonas.'],
+    references: ['Bula ANVISA — dipirona sódica (Novalgina®)', 'Sociedade Brasileira de Pediatria — manejo da febre'],
+  },
+  {
+    id: 'paracetamol',
+    name: 'Paracetamol',
+    group: 'Analgésico / antitérmico',
+    regimens: [
+      {
+        id: 'padrao',
+        label: 'Dor / febre',
+        basis: 'dose',
+        mgPerKg: 15,
+        mgPerKgRange: [10, 15],
+        intervalHours: 6,
+        maxDoseMg: 1000,
+        maxDailyMg: 4000,
+        maxDailyMgPerKg: 75,
+      },
+    ],
+    presentations: [
+      { id: 'gotas-200', label: 'Gotas 200 mg/mL', form: 'gotas', mgPerMl: 200, dropsPerMl: 15 },
+      { id: 'susp-32', label: 'Suspensão 32 mg/mL (160 mg/5 mL)', form: 'solucao', mgPerMl: 32, maxPracticalVolumeMl: 30 },
+      {
+        id: 'comp-500',
+        label: 'Comprimido 500 mg',
+        form: 'comprimido',
+        mgPerUnit: 500,
+        divisibleBy: 1,
+        minAgeMonths: 144,
+        note: 'Comprimidos: acima de 12 anos.',
+      },
+    ],
+    ageRules: [
+      {
+        belowMonths: 3,
+        level: 'warning',
+        message: 'Lactente < 3 meses com febre exige avaliação médica; a posologia neonatal é diferente.',
+      },
+    ],
+    warnings: ['Hepatotoxicidade em superdose: some todas as fontes de paracetamol (associações).'],
+    references: ['Nelson Textbook of Pediatrics — Formulário', 'Bula ANVISA — paracetamol (Tylenol®)'],
+  },
+  {
+    id: 'ibuprofeno',
+    name: 'Ibuprofeno',
+    group: 'AINE / antitérmico',
+    minAgeMonths: 6,
+    regimens: [
+      {
+        id: 'padrao',
+        label: 'Dor / febre',
+        basis: 'dose',
+        mgPerKg: 10,
+        mgPerKgRange: [5, 10],
+        intervalHours: 8,
+        maxDoseMg: 400,
+        maxDailyMg: 1200,
+        maxDailyMgPerKg: 40,
+      },
+    ],
+    presentations: [
+      { id: 'gotas-50', label: 'Gotas 50 mg/mL', form: 'gotas', mgPerMl: 50, dropsPerMl: 10 },
+      { id: 'gotas-100', label: 'Gotas 100 mg/mL', form: 'gotas', mgPerMl: 100, dropsPerMl: 10 },
+      { id: 'susp-20', label: 'Suspensão 20 mg/mL (100 mg/5 mL)', form: 'solucao', mgPerMl: 20, maxPracticalVolumeMl: 20 },
+      {
+        id: 'comp-400',
+        label: 'Comprimido 400 mg',
+        form: 'comprimido',
+        mgPerUnit: 400,
+        divisibleBy: 1,
+        minAgeMonths: 144,
+        note: 'Comprimidos: acima de 12 anos.',
+      },
+    ],
+    ageRules: [
+      {
+        belowMonths: 6,
+        level: 'danger',
+        blocks: true,
+        message: 'Não recomendado abaixo de 6 meses.',
+      },
+    ],
+    warnings: [
+      'Evitar em suspeita de dengue, varicela, desidratação ou doença renal.',
+      'Teto diário usado: 1.200 mg (uso analgésico/antitérmico).',
+    ],
+    references: ['Nelson Textbook of Pediatrics — Formulário', 'Bula ANVISA — ibuprofeno (Alivium®)'],
+  },
+  {
+    id: 'amoxicilina',
+    name: 'Amoxicilina',
+    group: 'Antibiótico — betalactâmico',
+    regimens: [
+      {
+        id: 'padrao',
+        label: 'Dose padrão (8/8h)',
+        basis: 'dia',
+        mgPerKg: 50,
+        mgPerKgRange: [25, 50],
+        intervalHours: 8,
+        maxDoseMg: 500,
+        maxDailyMg: 1500,
+        durationLabel: '7 a 10 dias, conforme o diagnóstico',
+      },
+      {
+        id: 'alta',
+        label: 'Alta dose (OMA / pneumonia, 12/12h)',
+        basis: 'dia',
+        mgPerKg: 90,
+        mgPerKgRange: [80, 90],
+        intervalHours: 12,
+        maxDoseMg: 2000,
+        maxDailyMg: 4000,
+        durationLabel: 'OMA: 5–10 dias conforme a idade; pneumonia: 5–7 dias',
+      },
+    ],
+    presentations: [
+      { id: 'susp-50', label: 'Suspensão 250 mg/5 mL', form: 'solucao', mgPerMl: 50, maxPracticalVolumeMl: 20 },
+      { id: 'susp-100', label: 'Suspensão 500 mg/5 mL', form: 'solucao', mgPerMl: 100, maxPracticalVolumeMl: 20 },
+      { id: 'caps-500', label: 'Cápsula 500 mg', form: 'capsula', mgPerUnit: 500, divisibleBy: 1 },
+    ],
+    ageRules: [
+      {
+        belowMonths: 3,
+        level: 'warning',
+        message: 'Menores de 3 meses: posologia neonatal ajustada pela função renal — consulte o protocolo.',
+      },
+    ],
+    warnings: ['Pergunte sobre alergia a penicilinas.'],
+    references: [
+      'AAP 2013 — Diagnosis and Management of Acute Otitis Media',
+      'IDSA/PIDS 2011 — Pneumonia adquirida na comunidade em crianças',
+      'Nelson Textbook of Pediatrics — Formulário',
+    ],
+  },
+  {
+    id: 'amoxi-clav',
+    name: 'Amoxicilina + Clavulanato',
+    group: 'Antibiótico — betalactâmico + inibidor',
+    minAgeMonths: 3,
+    regimens: [
+      {
+        id: 'padrao',
+        label: 'Padrão BD (12/12h)',
+        basis: 'dia',
+        mgPerKg: 45,
+        mgPerKgRange: [25, 45],
+        intervalHours: 12,
+        maxDoseMg: 875,
+        maxDailyMg: 1750,
+        durationLabel: '7 a 10 dias',
+        presentationIds: ['bd-400', 'comp-875'],
+        note: 'Dose calculada pelo componente amoxicilina.',
+      },
+      {
+        id: 'alta',
+        label: 'Alta dose ES (12/12h)',
+        basis: 'dia',
+        mgPerKg: 90,
+        mgPerKgRange: [80, 90],
+        intervalHours: 12,
+        maxDoseMg: 2000,
+        maxDailyMg: 4000,
+        durationLabel: '10 dias',
+        presentationIds: ['es-600'],
+        note: 'Formulação ES 14:1 — evita excesso de clavulanato (diarreia).',
+      },
+    ],
+    presentations: [
+      { id: 'bd-400', label: 'Suspensão BD 400 + 57 mg/5 mL', form: 'solucao', mgPerMl: 80, maxPracticalVolumeMl: 20 },
+      { id: 'es-600', label: 'Suspensão ES 600 + 42,9 mg/5 mL', form: 'solucao', mgPerMl: 120, maxPracticalVolumeMl: 20 },
+      {
+        id: 'comp-875',
+        label: 'Comprimido 875 + 125 mg',
+        form: 'comprimido',
+        mgPerUnit: 875,
+        divisibleBy: 1,
+        minWeightKg: 40,
+        note: 'Comprimido: a partir de 40 kg.',
+      },
+    ],
+    ageRules: [
+      {
+        belowMonths: 3,
+        level: 'danger',
+        blocks: true,
+        message: 'Esquema 12/12h não estabelecido abaixo de 3 meses.',
+      },
+    ],
+    warnings: ['Pergunte sobre alergia a penicilinas. Diarreia é efeito adverso frequente.'],
+    references: ['Bula ANVISA — amoxicilina + clavulanato de potássio (Clavulin® BD/ES)', 'AAP 2013 — Acute Otitis Media'],
+  },
+  {
+    id: 'azitromicina',
+    name: 'Azitromicina',
+    group: 'Antibiótico — macrolídeo',
+    minAgeMonths: 6,
+    regimens: [
+      {
+        id: '3dias',
+        label: 'Esquema de 3 dias',
+        basis: 'dia',
+        mgPerKg: 10,
+        mgPerKgRange: [10, 10],
+        intervalHours: 24,
+        maxDailyMg: 500,
+        durationLabel: '3 dias',
+      },
+      {
+        id: 'faringite',
+        label: 'Faringoamigdalite (5 dias)',
+        basis: 'dia',
+        mgPerKg: 12,
+        mgPerKgRange: [12, 12],
+        intervalHours: 24,
+        maxDailyMg: 500,
+        durationLabel: '5 dias',
+      },
+    ],
+    presentations: [
+      { id: 'susp-40', label: 'Suspensão 200 mg/5 mL', form: 'solucao', mgPerMl: 40, maxPracticalVolumeMl: 15 },
+      {
+        id: 'comp-500',
+        label: 'Comprimido 500 mg',
+        form: 'comprimido',
+        mgPerUnit: 500,
+        divisibleBy: 1,
+        minWeightKg: 45,
+        note: 'Comprimido: a partir de 45 kg.',
+      },
+    ],
+    ageRules: [
+      {
+        belowMonths: 6,
+        level: 'danger',
+        blocks: true,
+        message: 'Suspensão: segurança não estabelecida abaixo de 6 meses (exceto indicações específicas, ex.: coqueluche).',
+      },
+    ],
+    warnings: ['Risco de prolongamento do QT; atenção a interações.'],
+    references: ['Bula ANVISA — azitromicina (Zitromax®)', 'Nelson Textbook of Pediatrics — Formulário'],
+  },
+  {
+    id: 'prednisolona',
+    name: 'Prednisolona',
+    group: 'Corticoide oral',
+    regimens: [
+      {
+        id: 'asma',
+        label: 'Crise asmática / broncoespasmo',
+        basis: 'dia',
+        mgPerKg: 1,
+        mgPerKgRange: [1, 2],
+        intervalHours: 24,
+        maxDailyMg: 40,
+        durationLabel: '3 a 5 dias',
+        note: 'Teto de 40 mg/dia (crianças); adolescentes podem receber até 50 mg/dia conforme protocolo.',
+      },
+    ],
+    presentations: [
+      { id: 'sol-3', label: 'Solução oral 3 mg/mL', form: 'solucao', mgPerMl: 3, maxPracticalVolumeMl: 15 },
+      { id: 'sol-1', label: 'Solução oral 1 mg/mL', form: 'solucao', mgPerMl: 1, maxPracticalVolumeMl: 20 },
+      { id: 'comp-5', label: 'Comprimido 5 mg', form: 'comprimido', mgPerUnit: 5, divisibleBy: 0.5 },
+      { id: 'comp-20', label: 'Comprimido 20 mg', form: 'comprimido', mgPerUnit: 20, divisibleBy: 0.5 },
+    ],
+    warnings: ['Preferir dose única pela manhã.'],
+    references: ['GINA 2024 — Global Strategy for Asthma Management', 'Bula ANVISA — prednisolona (Predsim®)'],
+  },
+  {
+    id: 'dexametasona',
+    name: 'Dexametasona',
+    group: 'Corticoide',
+    regimens: [
+      {
+        id: 'crupe',
+        label: 'Laringite / crupe (dose única)',
+        basis: 'dose',
+        mgPerKg: 0.6,
+        mgPerKgRange: [0.15, 0.6],
+        intervalHours: null,
+        scheduleLabel: 'Dose única',
+        maxDoseMg: 16,
+        note: 'Alguns protocolos limitam a 10 mg.',
+      },
+    ],
+    presentations: [
+      { id: 'inj-4', label: 'Injetável 4 mg/mL (VO, IM ou EV)', form: 'injetavel', mgPerMl: 4 },
+      { id: 'elixir-01', label: 'Elixir 0,1 mg/mL (0,5 mg/5 mL)', form: 'solucao', mgPerMl: 0.1, maxPracticalVolumeMl: 30 },
+      { id: 'comp-4', label: 'Comprimido 4 mg', form: 'comprimido', mgPerUnit: 4, divisibleBy: 1 },
+    ],
+    references: ['Cochrane 2018 — Glucocorticoids for croup in children (Gates et al.)', 'Nelson Textbook of Pediatrics — Formulário'],
+  },
+  {
+    id: 'ondansetrona',
+    name: 'Ondansetrona',
+    group: 'Antiemético',
+    minAgeMonths: 6,
+    regimens: [
+      {
+        id: 'gastro',
+        label: 'Vômitos (gastroenterite)',
+        basis: 'dose',
+        mgPerKg: 0.15,
+        mgPerKgRange: [0.1, 0.15],
+        intervalHours: 8,
+        maxDoseMg: 8,
+        maxDailyMg: 24,
+      },
+    ],
+    presentations: [
+      { id: 'sol-08', label: 'Solução oral 4 mg/5 mL', form: 'solucao', mgPerMl: 0.8, maxPracticalVolumeMl: 10 },
+      { id: 'odt-4', label: 'Comprimido orodispersível 4 mg', form: 'comprimido', mgPerUnit: 4, divisibleBy: 1 },
+      { id: 'inj-2', label: 'Injetável 2 mg/mL', form: 'injetavel', mgPerMl: 2 },
+    ],
+    ageRules: [
+      {
+        belowMonths: 6,
+        level: 'danger',
+        blocks: true,
+        message: 'Uso na gastroenterite estudado a partir de 6 meses.',
+      },
+    ],
+    warnings: ['Risco de prolongamento do QT. Não substitui a terapia de reidratação.'],
+    references: ['Freedman et al., NEJM 2006 — Oral ondansetron for gastroenteritis', 'Bula ANVISA — ondansetrona (Vonau®)'],
+  },
+  {
+    id: 'salbutamol',
+    name: 'Salbutamol',
+    group: 'Broncodilatador β2 de curta ação',
+    regimens: [
+      {
+        id: 'spray',
+        label: 'Spray com espaçador (crise)',
+        basis: 'dose',
+        mgPerKg: 0.05,
+        mgPerKgRange: [0.033, 0.05],
+        intervalHours: null,
+        scheduleLabel: 'A cada 20 min na 1ª hora (até 3 vezes), depois conforme resposta',
+        minDoseMg: 0.2,
+        maxDoseMg: 1,
+        presentationIds: ['spray-100'],
+        note: '≈ 1 jato a cada 2–3 kg; mínimo 2, máximo 10 jatos.',
+      },
+      {
+        id: 'nebulizacao',
+        label: 'Nebulização (crise)',
+        basis: 'dose',
+        mgPerKg: 0.15,
+        mgPerKgRange: [0.1, 0.15],
+        intervalHours: null,
+        scheduleLabel: 'A cada 20 min na 1ª hora (até 3 vezes), depois conforme resposta',
+        minDoseMg: 2.5,
+        maxDoseMg: 5,
+        presentationIds: ['neb-5'],
+        note: 'Diluir em 3–4 mL de SF 0,9%.',
+      },
+    ],
+    presentations: [
+      { id: 'spray-100', label: 'Spray 100 mcg/jato', form: 'spray', mgPerUnit: 0.1, divisibleBy: 1 },
+      { id: 'neb-5', label: 'Solução para nebulização 5 mg/mL', form: 'nebulizacao', mgPerMl: 5, dropsPerMl: 20 },
+    ],
+    warnings: ['Taquicardia, tremor e hipocalemia são esperados em doses repetidas.'],
+    references: ['GINA 2024 — Global Strategy for Asthma Management', 'Sociedade Brasileira de Pediatria — crise asmática'],
+  },
+];
+
+export const getDrug = (id: string): Drug | undefined => DRUGS.find((d) => d.id === id);

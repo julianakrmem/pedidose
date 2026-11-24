@@ -1,0 +1,12 @@
+{
+  "name": "PediDose — Doses pediátricas",
+  "short_name": "PediDose",
+  "description": "Calculadora educacional de doses pediátricas por peso.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f6f4ef",
+  "theme_color": "#0f5e57",
+  "lang": "pt-BR",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
