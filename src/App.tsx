@@ -80,7 +80,7 @@ export default function App() {
         Uso educacional · confira sempre a bula e o protocolo local
       </p>
 
-      <main className="mx-auto grid max-w-5xl gap-6 px-4 py-6 md:grid-cols-[1fr_minmax(0,26rem)]">
+      <main className="mx-auto grid max-w-5xl gap-6 px-4 py-6 lg:grid-cols-[1fr_minmax(0,26rem)]">
         <div className="space-y-6">
           <Section step={1} title="Paciente">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -219,7 +219,7 @@ export default function App() {
           </Section>
         </div>
 
-        <aside className="md:sticky md:top-20 md:self-start">
+        <aside className="lg:sticky lg:top-20 lg:self-start">
           <ResultCard result={result} unitLabel={unitLabel} />
         </aside>
       </main>

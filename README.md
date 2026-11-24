@@ -1,5 +1,7 @@
 # PediDose 💧
 
+**▶ Abrir o app: https://julianakrmem.github.io/pedidose/** (instalável no celular)
+
 Calculadora de doses pediátricas por peso. Você informa peso, idade e apresentação, e ela devolve o volume pronto para prescrever (mL, gotas, comprimidos ou jatos), com travas de segurança e a referência usada no cálculo.
 
 > [!WARNING]
